@@ -1,0 +1,40 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+.eggs/
+dist/
+build/
+*.egg
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+
+# CUDA compiled binaries
+*.o
+*.cubin
+*.fatbin
+
+# Profiling artifacts
+*.nsys-rep
+*.sqlite
+*.ncu-rep
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Model weights (download separately)
+*.bin
+*.safetensors
