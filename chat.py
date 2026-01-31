@@ -27,7 +27,7 @@ def precompute_rope_freqs(head_dim: int, max_seq_len: int, theta: float = 100000
 
 
 def compile_kernel():
-    kernel_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "megakernel")
+    kernel_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "csrc", "megakernel")
 
     with open(os.path.join(kernel_dir, "fused_decode_ldg.cu")) as f:
         cuda_src = f.read()

@@ -1,11 +1,14 @@
-"""Comprehensive benchmark suite: PyTorch vs Triton vs CUDA vs Megakernel."""
-import torch
+"""Comprehensive benchmark suite: PyTorch vs Megakernel."""
 import gc
+import sys
 import time
 from dataclasses import dataclass
 
+import torch
 import warnings
 warnings.filterwarnings("ignore")
+
+sys.path.insert(0, "csrc/megakernel")
 
 @dataclass
 class BenchmarkResult:
@@ -75,19 +78,18 @@ def benchmark_pytorch_hf(decode_tokens: int = 100) -> BenchmarkResult:
 
 def benchmark_megakernel(decode_tokens: int = 100) -> BenchmarkResult:
     """Benchmark megakernel."""
-    from chat import MegakernelChat
+    from megakernel_decode import MegakernelGenerator
 
     print("  Loading megakernel...")
-    chat = MegakernelChat()
+    gen = MegakernelGenerator()
 
     def generate():
-        chat.k_cache.zero_()
-        chat.v_cache.zero_()
-        chat.generate("Hello", max_new_tokens=decode_tokens, show_speed=False)
+        gen.decoder.reset()
+        gen.generate("Hello", max_new_tokens=decode_tokens)
 
     result = run_benchmark("Megakernel", generate, tokens=decode_tokens)
 
-    del chat
+    del gen
     gc.collect()
     torch.cuda.empty_cache()
 
