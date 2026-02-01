@@ -8,31 +8,43 @@
 
 ## 1. Framework Comparison
 
-### Throughput
+### Full Benchmark (Throughput + Power + Quality)
 
-| Framework | TTFT (ms) | Decode tok/s | Peak Memory | Speedup vs HF |
-|-----------|-----------|--------------|-------------|---------------|
-| HuggingFace | 71 | 81 | 1.4 GB | 1.0x |
-| **Megakernel** | **4** | **239** | 2.6 GB | **2.95x** |
-| vLLM | 47 | 107 | ~2.0 GB | 1.32x |
-
-### Power & Energy Efficiency
-
-| Framework | Idle (W) | Avg (W) | Peak (W) | tok/s | tok/J | Efficiency vs HF |
-|-----------|----------|---------|----------|-------|-------|------------------|
-| HuggingFace | 169 | 185 | 190 | 58 | 0.31 | 1.0x |
-| **Megakernel** | 172 | 200 | 228 | 157 | **0.78** | **2.48x** |
-| vLLM | 171 | 195 | 209 | 107 | 0.55 | 1.74x |
+| Framework | tok/s | Avg Power (W) | Peak Power (W) | tok/J | Speedup vs HF |
+|-----------|-------|---------------|----------------|-------|---------------|
+| HuggingFace | 59 | 186 | 192 | 0.32 | 1.0x |
+| **Megakernel** | **158** | 205 | 233 | **0.77** | **2.68x** |
+| vLLM | 107 | 196 | 206 | 0.55 | 1.82x |
+| llama.cpp | 50 | 195 | 201 | 0.26 | 0.85x |
+| SGLang | - | - | - | - | flashinfer config issue |
+| ExLlamaV2 | - | - | - | - | FA version incompatible |
 
 ### Key Findings
 
-- Megakernel is **2.95x faster** and **2.48x more energy efficient** than HuggingFace
-- TTFT is **17.75x faster** (4ms vs 71ms) due to single fused kernel launch
-- Higher peak power (228W) but significantly faster completion = better energy efficiency
+- **Megakernel is 2.68x faster** and **2.41x more energy efficient** than HuggingFace
+- **Megakernel is 1.47x faster** than vLLM
+- **llama.cpp (GGUF F16)** is slower than HuggingFace on GPU - better suited for CPU inference
+- Higher peak power (233W) but significantly faster completion = better energy efficiency
 
 ---
 
-## 2. Cooperative Kernel vs CUDA Graph
+## 2. Quality Metrics
+
+| Framework | KL Divergence | Argmax Match | Notes |
+|-----------|---------------|--------------|-------|
+| HuggingFace | 0.0 (ref) | 100% | Reference implementation |
+| **Megakernel** | **0.000582** | varies | Near-identical distributions |
+| vLLM | - | 100% | Logits not exposed |
+| llama.cpp | - | - | Token IDs not exposed |
+
+**KL Divergence Analysis**:
+- Megakernel KL = 0.000582 indicates **near-identical probability distributions**
+- Small difference due to bf16 vs fp32 accumulation in matrix operations
+- Argmax can differ on close calls despite near-identical distributions
+
+---
+
+## 3. Cooperative Kernel vs CUDA Graph
 
 ### Synchronization Overhead (Empty Kernels)
 
@@ -55,7 +67,7 @@ Splitting at grid.sync() points would lose these memory benefits.
 
 ---
 
-## 3. Optimization Experiments
+## 4. Optimization Experiments
 
 ### Redundant RMSNorm (Implemented)
 
@@ -100,42 +112,26 @@ Status: Not yet implemented.
 
 ---
 
-## 4. Quality Metrics
-
-| Framework | KL Divergence | Perplexity | Argmax Match | Status |
-|-----------|---------------|------------|--------------|--------|
-| HuggingFace | 0.0 (ref) | 96.55 | 100% | ok |
-| **Megakernel** | **0.000725** | n/a | **100%** | ok |
-| vLLM | n/a | n/a | 100% | ok |
-| SGLang | n/a | n/a | n/a | requires server |
-| llama.cpp | n/a | n/a | n/a | needs GGUF |
-
-**KL Divergence**: Measures distribution difference from HuggingFace. Lower is better.
-- Megakernel KL = 0.000725 indicates **near-identical probability distributions**
-- Small difference likely due to bf16 vs fp32 accumulation in matrix ops
-
-**Argmax Match**: All frameworks produce identical greedy decoding outputs.
-
----
-
 ## Summary Table
 
 | Metric | Megakernel | vs HuggingFace | vs vLLM |
 |--------|------------|----------------|---------|
-| Decode tok/s | 239 | **2.95x** | 2.23x |
-| TTFT | 4ms | **17.75x** | 11.75x |
-| Energy (tok/J) | 0.78 | **2.48x** | 1.42x |
-| Memory | 2.6 GB | 1.86x more | 1.30x more |
+| Decode tok/s | 158 | **2.68x** | 1.47x |
+| Energy (tok/J) | 0.77 | **2.41x** | 1.40x |
+| KL Divergence | 0.000582 | near-identical | - |
 
 ---
 
 ## Running Benchmarks
 
 ```bash
-# Framework throughput
+# Full benchmark (throughput + power + quality)
+python experiments/framework_bench/full_benchmark.py
+
+# Framework throughput only
 python experiments/framework_bench/benchmark_suite.py
 
-# Power consumption
+# Power consumption only
 python experiments/framework_bench/power_benchmark.py
 
 # Quality metrics (KL divergence, argmax match)
@@ -151,11 +147,25 @@ python experiments/optimizations/compare_all.py
 
 ---
 
+## Model Conversion
+
+```bash
+# Convert to GGUF for llama.cpp
+git clone --depth 1 https://github.com/ggerganov/llama.cpp.git /tmp/llama.cpp
+python /tmp/llama.cpp/convert_hf_to_gguf.py \
+    ~/.cache/huggingface/hub/models--Qwen--Qwen3-0.6B/snapshots/*/  \
+    --outfile /tmp/qwen3_gguf/qwen3-0.6b-f16.gguf \
+    --outtype f16
+```
+
+---
+
 ## TODO
 
 - [x] Expose logits for KL divergence measurement
-- [ ] Convert to GGUF for llama.cpp/Ollama comparison (requires HF token or llama.cpp install)
-- [ ] Set up SGLang server benchmark (requires server setup)
-- [ ] Add TensorRT-LLM benchmark (requires model conversion)
-- [ ] Add ExLlamaV2 benchmark (requires installation)
+- [x] Add llama.cpp benchmark (GGUF F16)
+- [x] Add vLLM benchmark
+- [ ] Fix SGLang flashinfer configuration
+- [ ] Fix ExLlamaV2 Flash Attention compatibility
 - [ ] Implement fused phases optimization
+- [ ] Add TensorRT-LLM benchmark
