@@ -1,17 +1,19 @@
 # MegaQwen
 
-Custom CUDA megakernel for Qwen3-0.6B inference achieving **527 tok/s decode** on RTX 3090 (3.8x faster than PyTorch).
+Custom CUDA megakernel for Qwen3-0.6B inference achieving **240 tok/s decode** on RTX 3090 (4.1x faster than HuggingFace).
 
 ## Performance
 
 | Backend | Decode (tok/s) | Speedup |
 |---------|---------------|---------|
-| PyTorch (HuggingFace) | 139 | 1.0x |
-| Triton Kernels | 140 | 1.01x |
-| CUDA Kernels | 291 | 2.09x |
-| **Megakernel** | **527** | **3.79x** |
+| TensorRT-LLM | 355 | 6.0x |
+| **Megakernel** | **240** | **4.1x** |
+| vLLM | 107 | 1.8x |
+| SGLang | 107 | 1.8x |
+| ExLlamaV2 | 98 | 1.7x |
+| HuggingFace | 59 | 1.0x |
 
-Prefill megakernel achieves up to **5000+ tok/s** for batch prefill.
+**Note**: Decode throughput depends on context length. At position 1: 242 tok/s, at position 200: 142 tok/s. See [experiments/RESULTS.md](experiments/RESULTS.md) for full benchmarks.
 
 ## What is a Megakernel?
 
