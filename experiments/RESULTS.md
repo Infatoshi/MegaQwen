@@ -168,4 +168,4 @@ python /tmp/llama.cpp/convert_hf_to_gguf.py \
 - [x] Add ExLlamaV2 benchmark (required flash-attn 2.8.3)
 - [ ] Fix SGLang flashinfer JIT paths (blocked: upstream bug)
 - [ ] Implement fused phases optimization
-- [ ] Add TensorRT-LLM benchmark
+- [ ] Add TensorRT-LLM benchmark (blocked: requires Python 3.10 or 3.12, env has 3.11)
