@@ -16,8 +16,8 @@
 | **Megakernel** | **158** | 205 | 233 | **0.77** | **2.68x** |
 | vLLM | 107 | 196 | 206 | 0.55 | 1.82x |
 | llama.cpp | 50 | 195 | 201 | 0.26 | 0.85x |
-| SGLang | - | - | - | - | flashinfer JIT has wrong paths baked in (upstream bug) |
-| ExLlamaV2 | - | - | - | - | requires Flash Attention 2.5.7+ |
+| ExLlamaV2 | 98 | 197 | 207 | 0.50 | 1.66x |
+| SGLang | - | - | - | - | flashinfer JIT upstream bug |
 
 ### Key Findings
 
