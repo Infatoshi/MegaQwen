@@ -8,7 +8,9 @@
 
 ## 1. Framework Comparison
 
-### Full Benchmark (Throughput + Power + Quality)
+### Full Benchmark (Long Prompt, 200 tokens)
+
+**Prompt**: "Write a detailed essay about lobsters, covering their biology, habitat..." (~22 input tokens)
 
 | Framework | tok/s | Avg Power (W) | Peak Power (W) | tok/J | Speedup vs HF |
 |-----------|-------|---------------|----------------|-------|---------------|
@@ -19,6 +21,17 @@
 | ExLlamaV2 | 98 | 197 | 207 | 0.50 | 1.66x |
 | HuggingFace | 59 | 186 | 192 | 0.32 | 1.0x |
 | llama.cpp | 50 | 195 | 201 | 0.26 | 0.85x |
+
+### Short Prompt Benchmark (100 tokens)
+
+**Prompt**: "Hello" (1 input token) - minimal KV cache overhead
+
+| Framework | tok/s | Speedup |
+|-----------|-------|---------|
+| **Megakernel** | **530** | **3.91x** |
+| HuggingFace | 136 | 1.0x |
+
+**Note**: Decode throughput decreases with longer context due to attention reading more KV cache entries.
 
 ### Key Findings
 
