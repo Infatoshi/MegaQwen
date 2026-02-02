@@ -14,6 +14,22 @@ Custom CUDA megakernel for Qwen3-0.6B inference achieving **530 tok/s decode** o
 
 **Note**: Decode throughput depends on context length. At position 1: 525 tok/s, at position 200: 422 tok/s. See [experiments/RESULTS.md](experiments/RESULTS.md) for full benchmarks.
 
+## Fair Comparison (Devil's Advocate)
+
+Credit where it's due: **TensorRT-LLM, vLLM, SGLang, and other frameworks are excellently optimized for production workloads** with dynamic shapes, variable batch sizes, and long contexts. This megakernel exploits several advantages they intentionally don't:
+
+1. **Static shapes**: All dimensions (hidden size, head count, MLP width) are compile-time constants. Production frameworks must handle arbitrary model architectures at runtime.
+
+2. **Short context bias**: The benchmarks favor position 1-100 where KV cache overhead is minimal. At longer contexts, TensorRT-LLM's consistent 355 tok/s beats the megakernel's degradation to 158 tok/s.
+
+3. **Single model, single GPU**: No tensor parallelism, no continuous batching, no dynamic memory allocation. Real serving systems need all of these.
+
+4. **Learning exercise**: This project was built to understand GPU optimization, not to replace production inference engines.
+
+The speedup is real, but it comes from exploiting a narrow regime (batch=1, short context, static shapes) where the **texture cache (`__ldg()`) provides massive benefits** by keeping weights in the read-only cache path while L1/L2 handles activations. Production frameworks can't make these assumptions.
+
+**TL;DR**: Use TensorRT-LLM or vLLM for production. Use this to learn how GPUs actually work.
+
 ## What is a Megakernel?
 
 A megakernel fuses an entire transformer block into a single CUDA kernel launch, eliminating kernel launch overhead and intermediate memory traffic. This implementation:
